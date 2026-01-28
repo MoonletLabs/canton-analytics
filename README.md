@@ -1,6 +1,6 @@
 # Canton Analytics
 
-A dashboard for Canton Network analytics, powered by the [Canton Explorer API](https://api.ccexplorer.io). Dark-themed single-page dashboard with sequential loading to avoid rate limits.
+A dashboard for Canton Network analytics. Dark-themed with sequential loading to avoid rate limits.
 
 ## Features
 
@@ -36,8 +36,7 @@ npm install
 
 Copy `.env.example` to `.env` and set if needed:
 
-- `NEXT_PUBLIC_CCEXPLORER_API_URL` – Override for server-side Canton Explorer API (default: `https://api.ccexplorer.io`).  
-  In the browser, requests go through the same-origin rewrite `/api/ccexplorer-proxy`; no API key is required.
+- `UPSTREAM_API_URL` – Upstream API base URL for the server-side proxy (optional; has a default).
 
 ### Develop
 
@@ -65,7 +64,7 @@ canton-analytics/
 │   ├── validators/           # List + [id] detail
 │   ├── super-validators/
 │   ├── governance/           # List + [id] vote detail
-│   ├── api/ccexplorer-proxy  # Rewrite to api.ccexplorer.io (see next.config.js)
+│   ├── api/data/[...path]    # Server-side proxy for network data
 │   └── ...                   # Other routes (updates, transfers, offers, etc.)
 ├── components/
 │   ├── Navigation.tsx        # Nav: Dashboard, Validators, Super Validators, Governance
@@ -74,17 +73,16 @@ canton-analytics/
 ├── lib/
 │   ├── api/
 │   │   ├── scan-api.ts       # Data layer (getLatestRound, getValidatorLiveness, getOpenVotes, …)
-│   │   └── ccexplorer-api-client.ts  # Fetch + cache for api.ccexplorer.io
+│   │   └── api-client.ts     # Fetch + cache via /api/data proxy
 │   └── utils.ts
 ├── .env.example
-├── next.config.js            # Rewrites for /api/ccexplorer-proxy
+├── next.config.js
 └── package.json
 ```
 
 ## Data source
 
-- **Canton Explorer API** (`api.ccexplorer.io`) – validators, consensus, overview, super-validators, updates, governance.  
-- No API key; browser uses `/api/ccexplorer-proxy` rewrite.
+- Network data via server-side proxy (`/api/data`). Configure upstream with `UPSTREAM_API_URL`.
 
 ## License
 

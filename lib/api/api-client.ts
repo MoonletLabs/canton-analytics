@@ -25,11 +25,8 @@ export interface ApiError {
   code?: string;
 }
 
-/**
- * Raw response types from api.ccexplorer.io (minimal shapes we use).
- * Full mapping to app types happens in scan-api layer.
- */
-export interface CcexplorerValidatorsResponse {
+/** Raw response types from upstream API (minimal shapes we use). */
+export interface ValidatorsResponse {
   validator_licenses?: Array<{
     payload?: {
       validator?: string;
@@ -41,7 +38,7 @@ export interface CcexplorerValidatorsResponse {
   }>;
 }
 
-export interface CcexplorerConsensusResponse {
+export interface ConsensusResponse {
   latest_block?: {
     signed_header?: {
       header?: { height?: string };
@@ -55,14 +52,14 @@ export interface CcexplorerConsensusResponse {
   }>;
 }
 
-export interface CcexplorerSuperValidatorsResponse {
+export interface SuperValidatorsResponse {
   svs?: Array<{
     validatorId?: string;
     [key: string]: unknown;
   }>;
 }
 
-export interface CcexplorerUpdatesResponse {
+export interface UpdatesResponse {
   updates?: Array<{
     recordTime?: string;
     updateId?: string;
@@ -82,12 +79,12 @@ export interface CcexplorerUpdatesResponse {
   nextToken?: string;
 }
 
-export interface CcexplorerGovernanceResponse {
+export interface GovernanceResponse {
   openVotes?: unknown[];
   [key: string]: unknown;
 }
 
-export interface CcexplorerOverviewResponse {
+export interface OverviewResponse {
   consensusHeight?: number | string;
   activeValidators?: number;
   superValidators?: number;
@@ -97,9 +94,7 @@ export interface CcexplorerOverviewResponse {
   [key: string]: unknown;
 }
 
-/**
- * Fetch JSON from CC Explorer API with caching and in-flight deduplication.
- */
+/** Fetch JSON from API with caching and in-flight deduplication. */
 async function fetchJson<T>(
   path: string,
   params?: Record<string, string>
@@ -144,36 +139,32 @@ async function fetchJson<T>(
   return pending as Promise<T>;
 }
 
-/**
- * CC Explorer API client – all reads go to api.ccexplorer.io (or proxy).
- */
-export const ccexplorerApi = {
+/** API client – all reads go through server-side proxy. */
+export const api = {
   /** GET /api/validators */
-  getValidators(): Promise<CcexplorerValidatorsResponse> {
-    return fetchJson<CcexplorerValidatorsResponse>("/api/validators");
+  getValidators(): Promise<ValidatorsResponse> {
+    return fetchJson<ValidatorsResponse>("/api/validators");
   },
 
   /** GET /api/consensus */
-  getConsensus(): Promise<CcexplorerConsensusResponse> {
-    return fetchJson<CcexplorerConsensusResponse>("/api/consensus");
+  getConsensus(): Promise<ConsensusResponse> {
+    return fetchJson<ConsensusResponse>("/api/consensus");
   },
 
   /** GET /api/super-validators */
-  getSuperValidators(): Promise<CcexplorerSuperValidatorsResponse> {
-    return fetchJson<CcexplorerSuperValidatorsResponse>(
-      "/api/super-validators"
-    );
+  getSuperValidators(): Promise<SuperValidatorsResponse> {
+    return fetchJson<SuperValidatorsResponse>("/api/super-validators");
   },
 
   /** GET /api/v2/updates?limit=...&nextToken=... */
   getUpdates(options?: {
     limit?: number;
     nextToken?: string;
-  }): Promise<CcexplorerUpdatesResponse> {
+  }): Promise<UpdatesResponse> {
     const params: Record<string, string> = {};
     if (options?.limit != null) params.limit = String(options.limit);
     if (options?.nextToken) params.nextToken = options.nextToken;
-    return fetchJson<CcexplorerUpdatesResponse>(
+    return fetchJson<UpdatesResponse>(
       "/api/v2/updates",
       Object.keys(params).length ? params : undefined
     );
@@ -191,17 +182,17 @@ export const ccexplorerApi = {
   },
 
   /** GET /api/governance */
-  getGovernance(): Promise<CcexplorerGovernanceResponse> {
-    return fetchJson<CcexplorerGovernanceResponse>("/api/governance");
+  getGovernance(): Promise<GovernanceResponse> {
+    return fetchJson<GovernanceResponse>("/api/governance");
   },
 
   /** GET /api/overview */
-  getOverview(): Promise<CcexplorerOverviewResponse> {
-    return fetchJson<CcexplorerOverviewResponse>("/api/overview");
+  getOverview(): Promise<OverviewResponse> {
+    return fetchJson<OverviewResponse>("/api/overview");
   }
 };
 
 /** Clear response cache (e.g. for testing or refresh). */
-export function clearCcexplorerCache(): void {
+export function clearApiCache(): void {
   responseCache.clear();
 }

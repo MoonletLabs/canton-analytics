@@ -1,10 +1,10 @@
 /**
  * Canton Network data layer
- * Uses Canton Explorer API (api.ccexplorer.io) only. No api.cantonnodes.com.
+ * Single upstream API via server-side proxy (/api/data).
  */
 
-import { ccexplorerApi } from "./ccexplorer-api-client";
-import type { ApiError } from "./ccexplorer-api-client";
+import { api } from "./api-client";
+import type { ApiError } from "./api-client";
 
 export type { ApiError };
 
@@ -104,8 +104,8 @@ function parseRound(s: string | number | undefined): number {
 /** Latest round from consensus height (CC Explorer). */
 export async function getLatestRound(): Promise<RoundInfo> {
   const [consensus, overview] = await Promise.all([
-    ccexplorerApi.getConsensus(),
-    ccexplorerApi.getOverview()
+    api.getConsensus(),
+    api.getOverview()
   ]);
   const height =
     consensus.latest_block?.signed_header?.header?.height ??
@@ -160,8 +160,8 @@ function svNodeStatus(s: unknown): string {
 /** DSO-like state from overview + super-validators (CC Explorer). */
 export async function getDSOState(): Promise<DSOState> {
   const [overview, superV] = await Promise.all([
-    ccexplorerApi.getOverview(),
-    ccexplorerApi.getSuperValidators()
+    api.getOverview(),
+    api.getSuperValidators()
   ]);
   const raw = superV.svs ?? [];
   const sv_node_states: Array<{ node_id: string; status: string }> = raw
@@ -188,7 +188,7 @@ function normalizeVote(v: unknown): GovernanceVote | null {
 
 /** Open governance votes from CC Explorer overview. */
 export async function getOpenVotes(): Promise<GovernanceVote[]> {
-  const overview = await ccexplorerApi.getOverview();
+  const overview = await api.getOverview();
   const raw = overview.openVotes;
   if (!Array.isArray(raw)) return [];
   return raw.map(normalizeVote).filter((v): v is GovernanceVote => v !== null);
@@ -219,19 +219,18 @@ function normalizeValidatorIdForMatch(id: string): {
   return { full, short };
 }
 
-/** Single validator from CC Explorer validators list (by id). Matches full id, short name, or prefix. */
+/** Single validator by id. Uses full liveness list so liveness_rounds (from consensus) is consistent. */
 export async function getValidatorInfo(
   validatorId: string
 ): Promise<ValidatorInfo> {
-  const res = await ccexplorerApi.getValidators();
-  const licenses = res.validator_licenses ?? [];
+  const all = await getValidatorLiveness();
   const { full: idFull, short: idShort } =
     normalizeValidatorIdForMatch(validatorId);
   const idFullL = idFull.toLowerCase();
   const idShortL = idShort.toLowerCase();
 
-  const found = licenses.find((l) => {
-    const pVal = (l.payload?.validator ?? "").trim().toLowerCase();
+  const found = all.find((v) => {
+    const pVal = v.validator_id.trim().toLowerCase();
     if (!pVal) return false;
     if (pVal === idFullL) return true;
     if (pVal === idShortL) return true;
@@ -240,34 +239,63 @@ export async function getValidatorInfo(
     return false;
   });
 
-  const p = found?.payload;
-  const missed = p?.faucetState?.numCouponsMissed ?? 0;
-  const resolvedId = p?.validator ?? validatorId;
+  if (found) return found;
   return {
-    validator_id: resolvedId,
-    name: p?.sponsor,
-    status: missed > 0 ? "at_risk" : "active",
+    validator_id: validatorId,
+    name: undefined,
+    status: "unknown",
     liveness_rounds: 0,
-    missed_rounds: missed,
-    collection_timing: p?.lastActiveAt
-      ? { first: p.lastActiveAt, last: p.lastActiveAt }
-      : undefined
+    missed_rounds: 0,
+    collection_timing: undefined
   };
 }
 
-/** All validators (liveness/faucet style) from CC Explorer. */
+/** Build a map from validator address/id to consensus voting power (used as liveness proxy). */
+function buildVotingPowerMap(
+  validators?: Array<{ address?: string; voting_power?: string }>
+): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!validators) return map;
+  for (const v of validators) {
+    const addr = (v.address ?? "").trim().toLowerCase();
+    if (!addr) continue;
+    const power = parseInt(v.voting_power ?? "0", 10);
+    if (!Number.isFinite(power)) continue;
+    map.set(addr, power);
+    // Also key by last segment (e.g. short id) for matching
+    const lastPart = addr.includes("::")
+      ? (addr.split("::").pop() ?? addr)
+      : addr;
+    if (lastPart && lastPart !== addr) map.set(lastPart, power);
+  }
+  return map;
+}
+
+/** All validators (liveness/faucet style). Liveness rounds from consensus voting power when available. */
 export async function getValidatorLiveness(): Promise<ValidatorInfo[]> {
-  const res = await ccexplorerApi.getValidators();
+  const [res, consensus] = await Promise.all([
+    api.getValidators(),
+    api.getConsensus()
+  ]);
   const licenses = res.validator_licenses ?? [];
+  const votingPower = buildVotingPowerMap(consensus.validators);
+
   return licenses.map((l) => {
     const p = l.payload;
-    const id = p?.validator ?? "";
+    const id = (p?.validator ?? "").trim();
+    const idLower = id.toLowerCase();
     const missed = p?.faucetState?.numCouponsMissed ?? 0;
+    const livenessRounds =
+      votingPower.get(idLower) ??
+      votingPower.get(
+        idLower.includes("::") ? (idLower.split("::").pop() ?? "") : ""
+      ) ??
+      0;
     return {
-      validator_id: id,
+      validator_id: id || "—",
       name: p?.sponsor,
       status: missed > 0 ? "at_risk" : "active",
-      liveness_rounds: 0,
+      liveness_rounds: livenessRounds,
       missed_rounds: missed,
       collection_timing: p?.lastActiveAt
         ? { first: p.lastActiveAt, last: p.lastActiveAt }
@@ -313,7 +341,7 @@ export async function getAllUpdates(
   const startMs = startDate.getTime();
 
   for (let page = 0; page < UPDATES_MAX_PAGES; page++) {
-    const res = await ccexplorerApi.getUpdates({
+    const res = await api.getUpdates({
       limit: UPDATES_PAGE_SIZE,
       nextToken
     });
@@ -340,7 +368,7 @@ export async function getUpdateDetail(
   updateId: string,
   recordTime: string
 ): Promise<Record<string, unknown>> {
-  return ccexplorerApi.getUpdateDetail(updateId, recordTime);
+  return api.getUpdateDetail(updateId, recordTime);
 }
 
 /** Transfers: not provided by CC Explorer; return empty. */

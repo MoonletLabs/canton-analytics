@@ -1,10 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDSOState, getLatestRound, getOpenVotes, delay } from "@/lib/api/scan-api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import {
+  getDSOState,
+  getLatestRound,
+  getOpenVotes,
+  delay
+} from "@/lib/api/scan-api";
 import type { GovernanceVote } from "@/lib/api/scan-api";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
 import { Vote, AlertCircle, Scale, Users, FileCheck } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import Link from "next/link";
@@ -41,7 +60,12 @@ export default function GovernancePage() {
         const votes = await getOpenVotes();
         if (!cancelled) setOpenVotes(Array.isArray(votes) ? votes : []);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load governance data");
+        if (!cancelled)
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load governance data"
+          );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -52,17 +76,21 @@ export default function GovernancePage() {
     };
   }, []);
 
-  const activeCount = dsoState?.sv_node_states?.filter((n) => n.status === "active").length ?? 0;
+  const activeCount =
+    dsoState?.sv_node_states?.filter((n) => n.status === "active").length ?? 0;
   const totalCount = dsoState?.sv_node_states?.length ?? 0;
   const chartData = dsoState
     ? [
         { name: "Voting threshold", value: dsoState.voting_threshold ?? 0 },
         { name: "Active SV nodes", value: activeCount },
-        { name: "Total SV nodes", value: totalCount },
+        { name: "Total SV nodes", value: totalCount }
       ]
     : [];
 
-  const paginatedVotes = openVotes.slice((votesPage - 1) * votesPageSize, votesPage * votesPageSize);
+  const paginatedVotes = openVotes.slice(
+    (votesPage - 1) * votesPageSize,
+    votesPage * votesPageSize
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -75,13 +103,15 @@ export default function GovernancePage() {
             <div>
               <h1 className="text-4xl font-bold text-foreground">Governance</h1>
               <p className="text-muted-foreground text-lg mt-0.5">
-                DSO voting, node participation, and open votes — data from blockchain
+                DSO voting, node participation, and open votes — data from
+                blockchain
               </p>
             </div>
           </div>
           {roundInfo && (
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              Latest round: <strong className="text-foreground">{roundInfo.round}</strong>
+              Latest round:{" "}
+              <strong className="text-foreground">{roundInfo.round}</strong>
             </p>
           )}
         </div>
@@ -101,8 +131,12 @@ export default function GovernancePage() {
                   <Scale className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground font-medium">Voting threshold</p>
-                  <p className="text-3xl font-bold text-foreground">{loading ? "—" : (dsoState?.voting_threshold ?? 0)}</p>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Voting threshold
+                  </p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {loading ? "—" : (dsoState?.voting_threshold ?? 0)}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -114,8 +148,12 @@ export default function GovernancePage() {
                   <Users className="h-7 w-7 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground font-medium">Active SV nodes</p>
-                  <p className="text-3xl font-bold text-foreground">{loading ? "—" : activeCount}</p>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Active SV nodes
+                  </p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {loading ? "—" : activeCount}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -127,8 +165,12 @@ export default function GovernancePage() {
                   <FileCheck className="h-7 w-7 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground font-medium">Total SV nodes</p>
-                  <p className="text-3xl font-bold text-foreground">{loading ? "—" : totalCount}</p>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Total SV nodes
+                  </p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {loading ? "—" : totalCount}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -137,8 +179,12 @@ export default function GovernancePage() {
 
         <Card className="mb-8 bg-card/80 border-border shadow-lg shadow-black/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">Governance metrics</CardTitle>
-            <CardDescription>Voting threshold and SV node counts</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              Governance metrics
+            </CardTitle>
+            <CardDescription>
+              Voting threshold and SV node counts
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
@@ -147,13 +193,24 @@ export default function GovernancePage() {
               ) : chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
                     <XAxis dataKey="name" stroke="currentColor" />
                     <YAxis stroke="currentColor" />
                     <Tooltip
-                      contentStyle={{ borderRadius: "0.5rem", border: "1px solid hsl(var(--border))" }}
+                      contentStyle={{
+                        borderRadius: "0.5rem",
+                        border: "1px solid hsl(var(--border))"
+                      }}
                     />
-                    <Bar dataKey="value" fill="hsl(var(--primary))" name="Value" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="value"
+                      fill="hsl(var(--primary))"
+                      name="Value"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -167,9 +224,11 @@ export default function GovernancePage() {
 
         <Card className="bg-card/80 border-border shadow-lg shadow-black/5 overflow-hidden">
           <CardHeader className="border-b border-border/50 bg-muted/20">
-            <CardTitle className="flex items-center gap-2 text-foreground">Open votes</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              Open votes
+            </CardTitle>
             <CardDescription>
-              Governance votes — click a vote ID to view full details (same ID format as ccexplorer.io)
+              Governance votes — click a vote ID to view full details
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -178,31 +237,49 @@ export default function GovernancePage() {
                 <Loading className="min-h-[120px]" text="Loading open votes…" />
               </div>
             ) : openVotes.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">No open votes</div>
+              <div className="p-12 text-center text-muted-foreground">
+                No open votes
+              </div>
             ) : (
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
-                        <th className="text-left py-4 px-4 text-muted-foreground font-medium">Vote ID</th>
-                        <th className="text-left py-4 px-4 text-muted-foreground font-medium">Status</th>
-                        <th className="text-right py-4 px-4 text-muted-foreground font-medium">Accept</th>
-                        <th className="text-right py-4 px-4 text-muted-foreground font-medium">Reject</th>
-                        <th className="text-right py-4 px-4 text-muted-foreground font-medium">No vote</th>
+                        <th className="text-left py-4 px-4 text-muted-foreground font-medium">
+                          Vote ID
+                        </th>
+                        <th className="text-left py-4 px-4 text-muted-foreground font-medium">
+                          Status
+                        </th>
+                        <th className="text-right py-4 px-4 text-muted-foreground font-medium">
+                          Accept
+                        </th>
+                        <th className="text-right py-4 px-4 text-muted-foreground font-medium">
+                          Reject
+                        </th>
+                        <th className="text-right py-4 px-4 text-muted-foreground font-medium">
+                          No vote
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedVotes.map((v, i) => {
-                        const voteId = v.trackingCid ?? v.contract_id ?? `vote-${i}`;
+                        const voteId =
+                          v.trackingCid ?? v.contract_id ?? `vote-${i}`;
                         return (
-                          <tr key={voteId} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                          <tr
+                            key={voteId}
+                            className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                          >
                             <td className="py-3 px-4 font-mono text-xs break-all">
                               <Link
                                 href={`/governance/${encodeURIComponent(voteId)}`}
                                 className="text-primary hover:underline"
                               >
-                                {voteId.length > 56 ? voteId.slice(0, 56) + "…" : voteId}
+                                {voteId.length > 56
+                                  ? voteId.slice(0, 56) + "…"
+                                  : voteId}
                               </Link>
                             </td>
                             <td className="py-3 px-4">
@@ -210,9 +287,15 @@ export default function GovernancePage() {
                                 {v.status ?? "—"}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right font-medium">{v.acceptCount ?? "—"}</td>
-                            <td className="py-3 px-4 text-right font-medium">{v.rejectCount ?? "—"}</td>
-                            <td className="py-3 px-4 text-right text-muted-foreground">{v.noVoteCount ?? "—"}</td>
+                            <td className="py-3 px-4 text-right font-medium">
+                              {v.acceptCount ?? "—"}
+                            </td>
+                            <td className="py-3 px-4 text-right font-medium">
+                              {v.rejectCount ?? "—"}
+                            </td>
+                            <td className="py-3 px-4 text-right text-muted-foreground">
+                              {v.noVoteCount ?? "—"}
+                            </td>
                           </tr>
                         );
                       })}
@@ -224,7 +307,10 @@ export default function GovernancePage() {
                   pageSize={votesPageSize}
                   currentPage={votesPage}
                   onPageChange={setVotesPage}
-                  onPageSizeChange={(s) => { setVotesPageSize(s); setVotesPage(1); }}
+                  onPageSizeChange={(s) => {
+                    setVotesPageSize(s);
+                    setVotesPage(1);
+                  }}
                   label="votes"
                 />
               </>
