@@ -3,8 +3,8 @@
  * Uses Canton Explorer API (api.ccexplorer.io) only. No api.cantonnodes.com.
  */
 
-import { ccexplorerApi } from './ccexplorer-api-client';
-import type { ApiError } from './ccexplorer-api-client';
+import { ccexplorerApi } from "./ccexplorer-api-client";
+import type { ApiError } from "./ccexplorer-api-client";
 
 export type { ApiError };
 
@@ -97,7 +97,7 @@ export interface TrafficData {
 
 function parseRound(s: string | number | undefined): number {
   if (s === undefined) return 0;
-  const n = typeof s === 'string' ? parseInt(s, 10) : s;
+  const n = typeof s === "string" ? parseInt(s, 10) : s;
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -105,58 +105,69 @@ function parseRound(s: string | number | undefined): number {
 export async function getLatestRound(): Promise<RoundInfo> {
   const [consensus, overview] = await Promise.all([
     ccexplorerApi.getConsensus(),
-    ccexplorerApi.getOverview(),
+    ccexplorerApi.getOverview()
   ]);
   const height =
     consensus.latest_block?.signed_header?.header?.height ??
     overview.consensusHeight;
   const round = parseRound(height);
   const time =
-    (consensus as { latest_block?: { signed_header?: { header?: { time?: string } } } })
-      .latest_block?.signed_header?.header?.time ?? new Date().toISOString();
+    (
+      consensus as {
+        latest_block?: { signed_header?: { header?: { time?: string } } };
+      }
+    ).latest_block?.signed_header?.header?.time ?? new Date().toISOString();
   return {
     round,
-    timestamp: time,
+    timestamp: time
   };
 }
 
 /** Safely get a string node_id from an SV entry (object or array). */
 function svNodeId(s: unknown): string {
-  if (typeof s === 'string') return s;
+  if (typeof s === "string") return s;
   if (Array.isArray(s)) {
     const first = s[0];
-    if (typeof first === 'string') return first;
-    if (first && typeof first === 'object' && 'validatorId' in first) return String((first as { validatorId?: unknown }).validatorId ?? '');
-    return '';
+    if (typeof first === "string") return first;
+    if (first && typeof first === "object" && "validatorId" in first)
+      return String((first as { validatorId?: unknown }).validatorId ?? "");
+    return "";
   }
-  if (s && typeof s === 'object' && 'validatorId' in s) return String((s as { validatorId?: unknown }).validatorId ?? '');
-  return '';
+  if (s && typeof s === "object" && "validatorId" in s)
+    return String((s as { validatorId?: unknown }).validatorId ?? "");
+  return "";
 }
 
 /** Safely get a string status from an SV entry. */
 function svNodeStatus(s: unknown): string {
-  if (s && typeof s === 'object' && !Array.isArray(s) && 'status' in s) {
+  if (s && typeof s === "object" && !Array.isArray(s) && "status" in s) {
     const v = (s as { status?: unknown }).status;
-    return typeof v === 'string' ? v : 'active';
+    return typeof v === "string" ? v : "active";
   }
-  if (Array.isArray(s) && s.length > 1 && s[1] && typeof s[1] === 'object' && 'status' in s[1]) {
+  if (
+    Array.isArray(s) &&
+    s.length > 1 &&
+    s[1] &&
+    typeof s[1] === "object" &&
+    "status" in s[1]
+  ) {
     const v = (s[1] as { status?: unknown }).status;
-    return typeof v === 'string' ? v : 'active';
+    return typeof v === "string" ? v : "active";
   }
-  return 'active';
+  return "active";
 }
 
 /** DSO-like state from overview + super-validators (CC Explorer). */
 export async function getDSOState(): Promise<DSOState> {
   const [overview, superV] = await Promise.all([
     ccexplorerApi.getOverview(),
-    ccexplorerApi.getSuperValidators(),
+    ccexplorerApi.getSuperValidators()
   ]);
   const raw = superV.svs ?? [];
   const sv_node_states: Array<{ node_id: string; status: string }> = raw
     .map((s) => ({
       node_id: svNodeId(s),
-      status: svNodeStatus(s),
+      status: svNodeStatus(s)
     }))
     .filter((n) => n.node_id.length > 0);
   return {
@@ -164,12 +175,12 @@ export async function getDSOState(): Promise<DSOState> {
     mining_rounds: 0,
     amulet_rules: {},
     dso_rules: {},
-    sv_node_states,
+    sv_node_states
   };
 }
 
 function normalizeVote(v: unknown): GovernanceVote | null {
-  if (v && typeof v === 'object' && !Array.isArray(v)) {
+  if (v && typeof v === "object" && !Array.isArray(v)) {
     return v as GovernanceVote;
   }
   return null;
@@ -184,40 +195,48 @@ export async function getOpenVotes(): Promise<GovernanceVote[]> {
 }
 
 /** Single governance vote by id (contract_id or trackingCid). */
-export async function getGovernanceVoteDetail(id: string): Promise<GovernanceVote | null> {
+export async function getGovernanceVoteDetail(
+  id: string
+): Promise<GovernanceVote | null> {
   const votes = await getOpenVotes();
-  const normalized = (id || '').trim();
+  const normalized = (id || "").trim();
   if (!normalized) return null;
   const found = votes.find(
     (v) =>
-      (v.contract_id ?? '').toLowerCase() === normalized.toLowerCase() ||
-      (v.trackingCid ?? '').toLowerCase() === normalized.toLowerCase()
+      (v.contract_id ?? "").toLowerCase() === normalized.toLowerCase() ||
+      (v.trackingCid ?? "").toLowerCase() === normalized.toLowerCase()
   );
   return found ?? null;
 }
 
 /** Normalize validator id for matching (full "x::y" or short "x"). */
-function normalizeValidatorIdForMatch(id: string): { full: string; short: string } {
-  const full = (id || '').trim();
-  const short = full.includes('::') ? full.split('::')[0]!.trim() : full;
+function normalizeValidatorIdForMatch(id: string): {
+  full: string;
+  short: string;
+} {
+  const full = (id || "").trim();
+  const short = full.includes("::") ? full.split("::")[0]!.trim() : full;
   return { full, short };
 }
 
 /** Single validator from CC Explorer validators list (by id). Matches full id, short name, or prefix. */
-export async function getValidatorInfo(validatorId: string): Promise<ValidatorInfo> {
+export async function getValidatorInfo(
+  validatorId: string
+): Promise<ValidatorInfo> {
   const res = await ccexplorerApi.getValidators();
   const licenses = res.validator_licenses ?? [];
-  const { full: idFull, short: idShort } = normalizeValidatorIdForMatch(validatorId);
+  const { full: idFull, short: idShort } =
+    normalizeValidatorIdForMatch(validatorId);
   const idFullL = idFull.toLowerCase();
   const idShortL = idShort.toLowerCase();
 
   const found = licenses.find((l) => {
-    const pVal = (l.payload?.validator ?? '').trim().toLowerCase();
+    const pVal = (l.payload?.validator ?? "").trim().toLowerCase();
     if (!pVal) return false;
     if (pVal === idFullL) return true;
     if (pVal === idShortL) return true;
-    if (idFullL.startsWith(pVal + '::')) return true;
-    if (pVal.startsWith(idShortL + '::')) return true;
+    if (idFullL.startsWith(pVal + "::")) return true;
+    if (pVal.startsWith(idShortL + "::")) return true;
     return false;
   });
 
@@ -227,12 +246,12 @@ export async function getValidatorInfo(validatorId: string): Promise<ValidatorIn
   return {
     validator_id: resolvedId,
     name: p?.sponsor,
-    status: missed > 0 ? 'at_risk' : 'active',
+    status: missed > 0 ? "at_risk" : "active",
     liveness_rounds: 0,
     missed_rounds: missed,
     collection_timing: p?.lastActiveAt
       ? { first: p.lastActiveAt, last: p.lastActiveAt }
-      : undefined,
+      : undefined
   };
 }
 
@@ -242,17 +261,17 @@ export async function getValidatorLiveness(): Promise<ValidatorInfo[]> {
   const licenses = res.validator_licenses ?? [];
   return licenses.map((l) => {
     const p = l.payload;
-    const id = p?.validator ?? '';
+    const id = p?.validator ?? "";
     const missed = p?.faucetState?.numCouponsMissed ?? 0;
     return {
       validator_id: id,
       name: p?.sponsor,
-      status: missed > 0 ? 'at_risk' : 'active',
+      status: missed > 0 ? "at_risk" : "active",
       liveness_rounds: 0,
       missed_rounds: missed,
       collection_timing: p?.lastActiveAt
         ? { first: p.lastActiveAt, last: p.lastActiveAt }
-        : undefined,
+        : undefined
     };
   });
 }
@@ -269,30 +288,12 @@ function mapUpdateToPartyUpdate(u: {
     u.recordTime ?? u.effectiveAt ?? u.createdAt ?? new Date().toISOString();
   const parties = u.submittingPartyId ? [u.submittingPartyId] : [];
   return {
-    update_id: u.updateId ?? '',
+    update_id: u.updateId ?? "",
     timestamp: ts,
     parties,
-    update_type: 'update',
-    round: 0,
+    update_type: "update",
+    round: 0
   };
-}
-
-/** Party-scoped updates: fetch recent and filter by party (CC Explorer v2/updates). */
-export async function getPartyUpdates(
-  partyId: string,
-  _startDate: Date,
-  _endDate: Date,
-  limit: number = 1000
-): Promise<PartyUpdate[]> {
-  const res = await ccexplorerApi.getUpdates({ limit: Math.min(limit, 500) });
-  const updates = res.updates ?? [];
-  const all = updates.map(mapUpdateToPartyUpdate);
-  const lower = partyId.toLowerCase();
-  return all.filter(
-    (u) =>
-      u.parties.some((p) => p.toLowerCase().includes(lower)) ||
-      u.update_id.toLowerCase().includes(lower)
-  );
 }
 
 const UPDATES_PAGE_SIZE = 500;
@@ -314,7 +315,7 @@ export async function getAllUpdates(
   for (let page = 0; page < UPDATES_MAX_PAGES; page++) {
     const res = await ccexplorerApi.getUpdates({
       limit: UPDATES_PAGE_SIZE,
-      nextToken,
+      nextToken
     });
     const batch = (res.updates ?? []).map(mapUpdateToPartyUpdate);
     let oldestInBatchMs: number | null = null;
@@ -343,16 +344,6 @@ export async function getUpdateDetail(
 }
 
 /** Transfers: not provided by CC Explorer; return empty. */
-export async function getPartyTransfers(
-  _partyId: string,
-  _startDate: Date,
-  _endDate: Date,
-  _limit: number = 1000
-): Promise<Transfer[]> {
-  return [];
-}
-
-/** Transfers: not provided by CC Explorer; return empty. */
 export async function getAllTransfers(
   _startDate: Date,
   _endDate: Date,
@@ -374,7 +365,7 @@ export async function getValidatorRewards(
     total_rewards: 0,
     period_start: startDate.toISOString(),
     period_end: endDate.toISOString(),
-    rounds: 0,
+    rounds: 0
   };
 }
 
@@ -389,54 +380,7 @@ export async function getValidatorTraffic(
     total_burned: 0,
     total_purchased: 0,
     average_burn_per_mb: 0,
-    last_updated: new Date().toISOString(),
-  };
-}
-
-/** Party info: not provided by CC Explorer; return stub. */
-export async function getPartyInfo(partyId: string): Promise<{
-  party_id: string;
-  balance?: number;
-  last_activity?: string;
-}> {
-  return {
-    party_id: partyId,
-  };
-}
-
-/** Party activity: updates only (transfers = 0 from CC Explorer). */
-export async function getPartyActivitySummary(
-  partyId: string,
-  startDate: Date,
-  endDate: Date
-): Promise<{
-  totalTransactions: number;
-  totalVolume: number;
-  transfers: number;
-  offers: number;
-  preapprovals: number;
-  updates: number;
-}> {
-  const [transfers, updates] = await Promise.all([
-    getPartyTransfers(partyId, startDate, endDate),
-    getPartyUpdates(partyId, startDate, endDate),
-  ]);
-  const totalVolume = transfers.reduce((sum, t) => sum + (t.amount || 0), 0);
-  return {
-    totalTransactions: transfers.length + updates.length,
-    totalVolume,
-    transfers: transfers.length,
-    offers: updates.filter((u) =>
-      u.update_type?.toLowerCase().includes('offer')
-    ).length,
-    preapprovals: updates.filter((u) =>
-      u.update_type?.toLowerCase().includes('preapproval')
-    ).length,
-    updates: updates.filter(
-      (u) =>
-        !u.update_type?.toLowerCase().includes('offer') &&
-        !u.update_type?.toLowerCase().includes('preapproval')
-    ).length,
+    last_updated: new Date().toISOString()
   };
 }
 
@@ -461,15 +405,15 @@ export async function getGlobalActivitySummary(
     totalVolume,
     transfers: transfers.length,
     offers: updates.filter((u) =>
-      u.update_type?.toLowerCase().includes('offer')
+      u.update_type?.toLowerCase().includes("offer")
     ).length,
     preapprovals: updates.filter((u) =>
-      u.update_type?.toLowerCase().includes('preapproval')
+      u.update_type?.toLowerCase().includes("preapproval")
     ).length,
     updates: updates.filter(
       (u) =>
-        !u.update_type?.toLowerCase().includes('offer') &&
-        !u.update_type?.toLowerCase().includes('preapproval')
-    ).length,
+        !u.update_type?.toLowerCase().includes("offer") &&
+        !u.update_type?.toLowerCase().includes("preapproval")
+    ).length
   };
 }

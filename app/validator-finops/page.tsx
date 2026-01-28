@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,13 +17,12 @@ import { NetMarginCard } from "@/components/validator/NetMarginCard";
 import { ChangeAttributionCard } from "@/components/validator/ChangeAttribution";
 import { ScenarioModeling } from "@/components/validator/ScenarioModeling";
 import { FinancialHealth } from "@/components/validator/FinancialHealth";
-import { NodeStatus } from "@/components/NodeStatus";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loading } from "@/components/ui/loading";
 import {
   ValidatorFinOpsCalculator,
   type ValidatorFinOpsData,
-  type ChangeAttribution,
+  type ChangeAttribution
 } from "@/lib/validator-finops";
 import { fetchValidatorFinOpsData } from "@/lib/api/validator-finops-data";
 import { Calculator, TrendingUp, DollarSign, AlertCircle } from "lucide-react";
@@ -27,7 +32,9 @@ export default function ValidatorFinOpsPage() {
   const [validatorId, setValidatorId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [finOpsData, setFinOpsData] = useState<ValidatorFinOpsData | null>(null);
+  const [finOpsData, setFinOpsData] = useState<ValidatorFinOpsData | null>(
+    null
+  );
 
   const emptyFinOps: ValidatorFinOpsData = {
     traffic: {
@@ -35,27 +42,27 @@ export default function ValidatorFinOpsPage() {
       dailyBurnRate: 0,
       averageBurnPerMB: 10,
       totalMBUsed: 0,
-      totalCCBurned: 0,
+      totalCCBurned: 0
     },
     rewards: {
       livenessRewards: 0,
       activityRewards: 0,
       totalRewards: 0,
       rewardsPerDay: 0,
-      rewardsPerRound: 0,
+      rewardsPerRound: 0
     },
     infrastructure: {
       compute: 0,
       storage: 0,
       network: 0,
       monitoring: 0,
-      total: 0,
+      total: 0
     },
     period: {
       start: startOfMonth(subDays(new Date(), 30)),
-      end: endOfMonth(subDays(new Date(), 1)),
+      end: endOfMonth(subDays(new Date(), 1))
     },
-    changes: [],
+    changes: []
   };
 
   const dataForCalc = finOpsData ?? emptyFinOps;
@@ -71,7 +78,7 @@ export default function ValidatorFinOpsPage() {
     const credits = parseFloat(value) || 0;
     setFinOpsData({
       ...finOpsData,
-      traffic: { ...finOpsData.traffic, currentCredits: credits },
+      traffic: { ...finOpsData.traffic, currentCredits: credits }
     });
   };
 
@@ -80,7 +87,7 @@ export default function ValidatorFinOpsPage() {
     const rate = parseFloat(value) || 0;
     setFinOpsData({
       ...finOpsData,
-      traffic: { ...finOpsData.traffic, dailyBurnRate: rate },
+      traffic: { ...finOpsData.traffic, dailyBurnRate: rate }
     });
   };
 
@@ -106,15 +113,17 @@ export default function ValidatorFinOpsPage() {
               compute: finOpsData.infrastructure.compute,
               storage: finOpsData.infrastructure.storage,
               network: finOpsData.infrastructure.network,
-              monitoring: finOpsData.infrastructure.monitoring,
+              monitoring: finOpsData.infrastructure.monitoring
             }
-          : undefined,
+          : undefined
       });
 
       setFinOpsData(data);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch data from blockchain";
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch data from blockchain";
       setError(errorMessage);
       console.error("Error fetching validator FinOps data:", err);
     } finally {
@@ -131,7 +140,8 @@ export default function ValidatorFinOpsPage() {
             <h1 className="text-4xl font-bold">Validator FinOps Dashboard</h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Traffic burn vs rewards vs margin analysis for Canton Network validators
+            Traffic burn vs rewards vs margin analysis for Canton Network
+            validators
           </p>
         </div>
 
@@ -142,8 +152,6 @@ export default function ValidatorFinOpsPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-
-        <NodeStatus />
 
         <Card className="mb-6">
           <CardHeader>
@@ -164,7 +172,7 @@ export default function ValidatorFinOpsPage() {
                 />
               </div>
               <div className="flex items-end">
-                <Button 
+                <Button
                   onClick={handleFetchRealData}
                   disabled={isLoading || !validatorId}
                 >
@@ -174,7 +182,7 @@ export default function ValidatorFinOpsPage() {
                       Fetching...
                     </>
                   ) : (
-                    'Fetch Real Data'
+                    "Fetch Real Data"
                   )}
                 </Button>
               </div>
@@ -183,7 +191,8 @@ export default function ValidatorFinOpsPage() {
               <Alert variant="success">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Data from blockchain · Last updated: {new Date().toLocaleString()}
+                  Data from blockchain · Last updated:{" "}
+                  {new Date().toLocaleString()}
                 </AlertDescription>
               </Alert>
             )}
@@ -219,25 +228,33 @@ export default function ValidatorFinOpsPage() {
                       <div className="text-2xl font-bold">
                         {dataForCalc.rewards.totalRewards.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total Rewards (CC)</div>
+                      <div className="text-sm text-muted-foreground">
+                        Total Rewards (CC)
+                      </div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-red-600">
                         {dataForCalc.traffic.totalCCBurned.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total Burned (CC)</div>
+                      <div className="text-sm text-muted-foreground">
+                        Total Burned (CC)
+                      </div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold">
                         {dataForCalc.traffic.currentCredits.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Current Credits</div>
+                      <div className="text-sm text-muted-foreground">
+                        Current Credits
+                      </div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold">
                         {dataForCalc.traffic.dailyBurnRate.toLocaleString()}
                       </div>
-                      <div className="text-sm text-muted-foreground">Daily Burn Rate</div>
+                      <div className="text-sm text-muted-foreground">
+                        Daily Burn Rate
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -268,11 +285,15 @@ export default function ValidatorFinOpsPage() {
                       id="credits"
                       type="number"
                       value={dataForCalc.traffic.currentCredits}
-                      onChange={(e) => handleUpdateTrafficCredits(e.target.value)}
+                      onChange={(e) =>
+                        handleUpdateTrafficCredits(e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="burnRate">Daily Burn Rate (credits/day)</Label>
+                    <Label htmlFor="burnRate">
+                      Daily Burn Rate (credits/day)
+                    </Label>
                     <Input
                       id="burnRate"
                       type="number"
@@ -329,7 +350,8 @@ export default function ValidatorFinOpsPage() {
                   <div className="flex justify-between p-3 bg-muted rounded-lg">
                     <span>Infrastructure - Monitoring</span>
                     <span className="font-mono">
-                      {dataForCalc.infrastructure.monitoring.toLocaleString()} CC
+                      {dataForCalc.infrastructure.monitoring.toLocaleString()}{" "}
+                      CC
                     </span>
                   </div>
                   <div className="flex justify-between p-3 bg-primary/10 rounded-lg border-2 border-primary">
