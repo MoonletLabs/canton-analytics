@@ -57,3 +57,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Recharts: dark theme tooltip and cursor (hover highlight) */
+.dark .recharts-default-tooltip {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem !important;
+  color: hsl(var(--card-foreground)) !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-label,
+.dark .recharts-default-tooltip .recharts-tooltip-item-name,
+.dark .recharts-default-tooltip .recharts-tooltip-item-value {
+  color: hsl(var(--card-foreground)) !important;
+}
+
+.dark .recharts-tooltip-cursor {
+  fill: hsl(217 33% 17% / 0.5) !important;
+}
