@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
   const [loadingRound, setLoadingRound] = useState(true);
   const [loadingDso, setLoadingDso] = useState(false);
-  const [loadingLiveness, setLoadingLiveness] = useState(false);
+  const [loadingLiveness, setLoadingLiveness] = useState(true);
   const [loadingOpenVotes, setLoadingOpenVotes] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
