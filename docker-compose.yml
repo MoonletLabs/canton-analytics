@@ -6,6 +6,7 @@ services:
     environment:
       PORT: "3000"
       NODE_ENV: "production"
+      UPSTREAM_API_URL: "https://api.ccexplorer.io"
     restart: unless-stopped
 
   nginx:

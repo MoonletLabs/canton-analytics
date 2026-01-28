@@ -1,14 +1,12 @@
 /**
- * Canton Explorer API Client (api.ccexplorer.io)
+ * Network Data API Client
  *
- * Single data source for analytics. No api.cantonnodes.com.
- * In the browser requests go through same-origin proxy to avoid CORS.
+ * Single data source for analytics.
+ * All requests go through server-side proxy to avoid CORS and hide upstream.
  */
 
-const CCEXPLORER_BASE =
-  typeof window !== 'undefined'
-    ? '/api/ccexplorer-proxy'
-    : process.env.NEXT_PUBLIC_CCEXPLORER_API_URL || 'https://api.ccexplorer.io';
+// All requests go through our server-side API route
+const API_BASE = "/api/data";
 
 /** Cache GET responses to reduce load and respect rate limits */
 const CACHE_TTL_MS = 120_000; // 2 minutes
@@ -113,19 +111,20 @@ async function fetchJson<T>(
   }
   let pending = inFlight.get(key);
   if (!pending) {
-    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
-    const url = `${CCEXPLORER_BASE}${path}${query}`;
+    const query = params ? `?${new URLSearchParams(params).toString()}` : "";
+    const url = `${API_BASE}${path}${query}`;
     pending = fetch(url, {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: "application/json" }
     }).then(async (res) => {
       if (!res.ok) {
         const err: ApiError = {
           message: res.statusText || `HTTP ${res.status}`,
-          status: res.status,
+          status: res.status
         };
         try {
           const body = await res.json().catch(() => ({}));
-          if (body && typeof body.message === 'string') err.message = body.message;
+          if (body && typeof body.message === "string")
+            err.message = body.message;
         } catch {
           // ignore
         }
@@ -151,42 +150,55 @@ async function fetchJson<T>(
 export const ccexplorerApi = {
   /** GET /api/validators */
   getValidators(): Promise<CcexplorerValidatorsResponse> {
-    return fetchJson<CcexplorerValidatorsResponse>('/api/validators');
+    return fetchJson<CcexplorerValidatorsResponse>("/api/validators");
   },
 
   /** GET /api/consensus */
   getConsensus(): Promise<CcexplorerConsensusResponse> {
-    return fetchJson<CcexplorerConsensusResponse>('/api/consensus');
+    return fetchJson<CcexplorerConsensusResponse>("/api/consensus");
   },
 
   /** GET /api/super-validators */
   getSuperValidators(): Promise<CcexplorerSuperValidatorsResponse> {
-    return fetchJson<CcexplorerSuperValidatorsResponse>('/api/super-validators');
+    return fetchJson<CcexplorerSuperValidatorsResponse>(
+      "/api/super-validators"
+    );
   },
 
   /** GET /api/v2/updates?limit=...&nextToken=... */
-  getUpdates(options?: { limit?: number; nextToken?: string }): Promise<CcexplorerUpdatesResponse> {
+  getUpdates(options?: {
+    limit?: number;
+    nextToken?: string;
+  }): Promise<CcexplorerUpdatesResponse> {
     const params: Record<string, string> = {};
     if (options?.limit != null) params.limit = String(options.limit);
     if (options?.nextToken) params.nextToken = options.nextToken;
-    return fetchJson<CcexplorerUpdatesResponse>('/api/v2/updates', Object.keys(params).length ? params : undefined);
+    return fetchJson<CcexplorerUpdatesResponse>(
+      "/api/v2/updates",
+      Object.keys(params).length ? params : undefined
+    );
   },
 
   /** GET /api/v2/updates/:updateId/:recordTime — single update detail (recordTime URL-encoded). */
-  getUpdateDetail(updateId: string, recordTime: string): Promise<Record<string, unknown>> {
+  getUpdateDetail(
+    updateId: string,
+    recordTime: string
+  ): Promise<Record<string, unknown>> {
     const encoded = encodeURIComponent(recordTime);
-    return fetchJson<Record<string, unknown>>(`/api/v2/updates/${updateId}/${encoded}`);
+    return fetchJson<Record<string, unknown>>(
+      `/api/v2/updates/${updateId}/${encoded}`
+    );
   },
 
   /** GET /api/governance */
   getGovernance(): Promise<CcexplorerGovernanceResponse> {
-    return fetchJson<CcexplorerGovernanceResponse>('/api/governance');
+    return fetchJson<CcexplorerGovernanceResponse>("/api/governance");
   },
 
   /** GET /api/overview */
   getOverview(): Promise<CcexplorerOverviewResponse> {
-    return fetchJson<CcexplorerOverviewResponse>('/api/overview');
-  },
+    return fetchJson<CcexplorerOverviewResponse>("/api/overview");
+  }
 };
 
 /** Clear response cache (e.g. for testing or refresh). */
